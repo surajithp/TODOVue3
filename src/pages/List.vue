@@ -92,61 +92,73 @@
 
 <script lang="ts">
 import Vue from "vue";
+import {
+  createComponent,
+  reactive,
+  computed,
+  toRefs
+} from "@vue/composition-api";
 import todos from "../utils/todos";
 import { FilterByEnum, Data, FilterBy } from "./types/List";
 
-export default Vue.extend({
-  data: (): Data => ({
-    todos: [],
-    newTodo: "",
-    filterBy: FilterByEnum.ALL
-  }),
-  computed: {
-    filteredTodos: function() {
-      return this.todos.filter(todo => {
-        if (this.filterBy === FilterByEnum.WORKING) {
+export default createComponent({
+  setup(props, context) {
+    const todoState = reactive<Data>({
+      todos: [],
+      newTodo: "",
+      filterBy: FilterByEnum.ALL
+    });
+    const getTodos = (): void => {
+      setTimeout(() => {
+        todoState.todos = [...todos];
+      }, 1000);
+    };
+    const init = (): void => {
+      getTodos();
+    };
+    init();
+
+    const addTodo = (): void => {
+      const newTodo = { name: todoState.newTodo, completed: false };
+      todoState.todos = [...todoState.todos, newTodo];
+      todoState.newTodo = "";
+    };
+    const deleteTodo = (index: number): void => {
+      todoState.todos = todoState.todos.filter((todo, i) => i !== index);
+    };
+    const completeTodo = (index: number): void => {
+      todoState.todos[index].completed = true;
+    };
+    const handleClickFilterBy = function(filterBy: FilterBy): void {
+      todoState.filterBy = filterBy;
+    };
+    const goEditTodo = function(index: number): void {
+      context.root.$router.push(`/todos/${index}/edit`);
+    };
+    const filteredTodos = computed(() => {
+      return todoState.todos.filter(todo => {
+        if (todoState.filterBy === FilterByEnum.WORKING) {
           return !todo.completed;
         }
-        if (this.filterBy === FilterByEnum.DONE) {
+        if (todoState.filterBy === FilterByEnum.DONE) {
           return todo.completed;
         }
         return todo;
       });
-    },
-    numOfTodos: function(): number {
-      return this.todos.filter(todo => !todo.completed).length;
-    }
-  },
-  mounted(): void {
-    this.init();
-  },
-  methods: {
-    init: function(): void {
-      this.getTodos();
-    },
-    addTodo: function(): void {
-      const newTodo = { name: this.newTodo, completed: false };
-      this.todos = [...this.todos, newTodo];
-
-      this.newTodo = "";
-    },
-    deleteTodo: function(index: number): void {
-      this.todos = this.todos.filter((todo, i) => i !== index);
-    },
-    completeTodo: function(index: number): void {
-      this.todos[index].completed = true;
-    },
-    handleClickFilterBy: function(filterBy: FilterBy): void {
-      this.filterBy = filterBy;
-    },
-    goEditTodo: function(index: number): void {
-      this.$router.push(`/todos/${index}/edit`);
-    },
-    getTodos: function(): void {
-      setTimeout(() => {
-        this.todos = [...todos];
-      }, 1000);
-    }
+    });
+    const numOfTodos = computed(() => {
+      return todoState.todos.filter(todo => !todo.completed).length;
+    });
+    return {
+      ...toRefs(todoState),
+      filteredTodos,
+      numOfTodos,
+      addTodo,
+      handleClickFilterBy,
+      completeTodo,
+      goEditTodo,
+      deleteTodo
+    };
   }
 });
 </script>
